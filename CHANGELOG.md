@@ -1,3 +1,7 @@
+dns-update 0.5.8
+================================
+- Scaleway: append a trailing dot to CNAME, NS, MX and SRV hostname targets.
+
 dns-update 0.5.7
 ================================
 - Exoscale: fix HTTP 403 "Invalid request signature" on every API call by signing the request body.

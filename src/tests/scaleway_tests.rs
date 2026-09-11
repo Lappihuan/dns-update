@@ -209,6 +209,115 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_set_rrset_mx_relative_exchange_is_qualified() {
+        let mut server = mockito::Server::new_async().await;
+        let patch = mock_patch(
+            &mut server,
+            json!({
+                "return_all_records": false,
+                "disallow_new_zone_creation": true,
+                "changes": [{
+                    "set": {
+                        "id_fields": {"name": "@", "type": "MX"},
+                        "records": [{
+                            "name": "@",
+                            "type": "MX",
+                            "data": "10 mail.example.com.",
+                            "ttl": 3600,
+                            "priority": 10,
+                        }]
+                    }
+                }]
+            }),
+        );
+
+        let provider = setup_provider(server.url());
+        let result = provider
+            .set_rrset(
+                "example.com",
+                DnsRecordType::MX,
+                3600,
+                vec![DnsRecord::MX(MXRecord {
+                    exchange: "mail.example.com".to_string(),
+                    priority: 10,
+                })],
+                "example.com",
+            )
+            .await;
+
+        assert!(result.is_ok(), "set_rrset returned: {result:?}");
+        patch.assert();
+    }
+
+    #[tokio::test]
+    async fn test_set_rrset_cname_relative_target_is_qualified() {
+        let mut server = mockito::Server::new_async().await;
+        let patch = mock_patch(
+            &mut server,
+            json!({
+                "return_all_records": false,
+                "disallow_new_zone_creation": true,
+                "changes": [{
+                    "set": {
+                        "id_fields": {"name": "autoconfig", "type": "CNAME"},
+                        "records": [{
+                            "name": "autoconfig",
+                            "type": "CNAME",
+                            "data": "mail.example.com.",
+                            "ttl": 3600,
+                        }]
+                    }
+                }]
+            }),
+        );
+
+        let provider = setup_provider(server.url());
+        let result = provider
+            .set_rrset(
+                "autoconfig.example.com",
+                DnsRecordType::CNAME,
+                3600,
+                vec![DnsRecord::CNAME("mail.example.com".to_string())],
+                "example.com",
+            )
+            .await;
+
+        assert!(result.is_ok(), "set_rrset returned: {result:?}");
+        patch.assert();
+    }
+
+    #[tokio::test]
+    async fn test_remove_from_rrset_mx_matches_qualified_data() {
+        let mut server = mockito::Server::new_async().await;
+        let patch = mock_patch(
+            &mut server,
+            json!({
+                "return_all_records": false,
+                "disallow_new_zone_creation": true,
+                "changes": [
+                    {"delete": {"id_fields": {"name": "@", "type": "MX", "data": "10 mail.example.com."}}},
+                ]
+            }),
+        );
+
+        let provider = setup_provider(server.url());
+        let result = provider
+            .remove_from_rrset(
+                "example.com",
+                DnsRecordType::MX,
+                vec![DnsRecord::MX(MXRecord {
+                    exchange: "mail.example.com".to_string(),
+                    priority: 10,
+                })],
+                "example.com",
+            )
+            .await;
+
+        assert!(result.is_ok(), "remove_from_rrset returned: {result:?}");
+        patch.assert();
+    }
+
+    #[tokio::test]
     async fn test_set_rrset_srv_three_field_data() {
         let mut server = mockito::Server::new_async().await;
         let patch = mock_patch(
@@ -222,7 +331,7 @@ mod tests {
                         "records": [{
                             "name": "_imaps._tcp",
                             "type": "SRV",
-                            "data": "5 993 mail.example.com",
+                            "data": "5 993 mail.example.com.",
                             "ttl": 3600,
                             "priority": 10,
                         }]
