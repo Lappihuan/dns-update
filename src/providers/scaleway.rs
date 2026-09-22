@@ -286,11 +286,11 @@ fn build_entry(name: String, record: DnsRecord, ttl: u32) -> crate::Result<Recor
     let data = match record {
         DnsRecord::A(addr) => addr.to_string(),
         DnsRecord::AAAA(addr) => addr.to_string(),
-        DnsRecord::CNAME(content) => content,
-        DnsRecord::NS(content) => content,
-        DnsRecord::MX(mx) => format!("{} {}", mx.priority, mx.exchange),
+        DnsRecord::CNAME(content) => content.into_fqdn().into_owned(),
+        DnsRecord::NS(content) => content.into_fqdn().into_owned(),
+        DnsRecord::MX(mx) => format!("{} {}", mx.priority, mx.exchange.into_fqdn()),
         DnsRecord::TXT(content) => format!("\"{}\"", content.replace('"', "\\\"")),
-        DnsRecord::SRV(srv) => format!("{} {} {}", srv.weight, srv.port, srv.target),
+        DnsRecord::SRV(srv) => format!("{} {} {}", srv.weight, srv.port, srv.target.into_fqdn()),
         DnsRecord::TLSA(tlsa) => tlsa.to_string(),
         DnsRecord::CAA(caa) => caa.to_string(),
     };
